@@ -119,6 +119,13 @@ namespace BCn
 		{
 			var target = this.values;
 
+			if( rowPitch == 4 && colPitch == 1 )
+			{
+				//get the fast case out of the way
+				Array.Copy( values, index, target, 0, target.Length );
+				return;
+			}
+
 			int i = index;
 
 			target[0] = values[i];
