@@ -51,7 +51,7 @@ namespace BCn
 			//clamp
 
 			if( v > 1 ) v = 1;
-			else if( v < 1 ) v = -1;
+			else if( v < -1 ) v = -1;
 
 			//scale and bias (so the rounding is correct)
 
