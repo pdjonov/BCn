@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 namespace BCn
 {
 	/// <summary>
-	/// An unsigned single-channel block (BC3 alpha, BC4 R, BC5 R and G).
+	/// An unsigned single-channel block (BC3 A, BC4 R, BC5 R and G).
 	/// </summary>
+	[Serializable]
 	public struct UnsignedRBlock
 	{
 		public ulong PackedValue;
@@ -192,8 +192,9 @@ namespace BCn
 	}
 
 	/// <summary>
-	/// A signed single-channel block (BC3 alpha, BC4 R, BC5 R and G).
+	/// A signed single-channel block (BC3 A, BC4 R, BC5 R and G).
 	/// </summary>
+	[Serializable]
 	public struct SignedRBlock
 	{
 		public ulong PackedValue;
@@ -396,5 +397,149 @@ namespace BCn
 				PackedValue = (PackedValue & ~(0x7UL << shift)) | ((ulong)value << shift);
 			}
 		}
+	}
+
+	[Serializable]
+	public struct Rgb565
+	{
+		public ushort PackedValue;
+
+		public Rgb565( ushort packedValue )
+		{
+			this.PackedValue = packedValue;
+		}
+
+		public Rgb565( int r, int g, int b )
+		{
+			PackedValue = (ushort)((r << 11) | (g << 5) | b);
+		}
+
+		public int R
+		{
+			get { return PackedValue >> 11; }
+			set { PackedValue = (ushort)((PackedValue & 0x07FF) | (value << 11)); }
+		}
+
+		public int G
+		{
+			get { return (PackedValue >> 5) & 0x3F; }
+			set { PackedValue = (ushort)((PackedValue & 0xF81F) | ((value & 0x3F) << 5)); }
+		}
+
+		public int B
+		{
+			get { return PackedValue & 0x1F; }
+			set { PackedValue = (ushort)((PackedValue & 0xFFE0) | (value & 0x1F)); }
+		}
+
+		public float RF
+		{
+			get { return R / 31F; }
+			set
+			{
+				int iv;
+
+				if( value <= 0 ) iv = 0;
+				else if( value >= 1 ) iv = 31;
+				else iv = (int)(value * 31 + 0.5F);
+
+				R = iv;
+			}
+		}
+
+		public float GF
+		{
+			get { return G / 63F; }
+			set
+			{
+				int iv;
+
+				if( value <= 0 ) iv = 0;
+				else if( value >= 1 ) iv = 63;
+				else iv = (int)(value * 63 + 0.5F);
+
+				G = iv;
+			}
+		}
+
+		public float BF
+		{
+			get { return B / 31F; }
+			set
+			{
+				int iv;
+
+				if( value <= 0 ) iv = 0;
+				else if( value >= 1 ) iv = 31;
+				else iv = (int)(value * 31 + 0.5F);
+
+				B = iv;
+			}
+		}
+
+		public static Rgb565 Pack( float r, float g, float b )
+		{
+			int ir, ig, ib;
+
+			if( r <= 0 ) ir = 0;
+			else if( r >= 1 ) ir = 31;
+			else ir = (int)(r * 31 + 0.5F);
+
+			if( g <= 0 ) ig = 0;
+			else if( g >= 1 ) ig = 63;
+			else ig = (int)(g * 63 + 0.5F);
+
+			if( b <= 0 ) ib = 0;
+			else if( b >= 1 ) ib = 31;
+			else ib = (int)(b * 31 + 0.5F);
+
+			return new Rgb565( ir, ig, ib );
+		}
+
+		internal static Rgb565 Pack( RgbF32 cl )
+		{
+			return Pack( cl.R, cl.G, cl.B );
+		}
+
+		internal void Unpack( out RgbF32 cl )
+		{
+			cl.R = RF;
+			cl.G = GF;
+			cl.B = BF;
+		}
+	}
+
+	/// <summary>
+	/// An unsigned three-channel block (BC1, BC2, BC3).
+	/// </summary>
+	[Serializable]
+	public struct RgbBlock
+	{
+		public ulong PackedValue;
+
+		public const ulong TransparentValue = 0xFFFFFFFFFFFF0000UL;
+
+		public Rgb565 Rgb0
+		{
+			get { return new Rgb565( (ushort)PackedValue ); }
+			set { PackedValue = (PackedValue & ~0xFFFFUL) | value.PackedValue; }
+		}
+
+		public Rgb565 Rgb1
+		{
+			get { return new Rgb565( (ushort)(PackedValue >> 16) ); }
+			set { PackedValue = (PackedValue & ~0xFFFF0000UL) | ((ulong)value.PackedValue << 16); }
+		}
+
+		public RgbBlock( Rgb565 r0, Rgb565 r1 )
+		{
+			PackedValue = ((ulong)r1.PackedValue << 16) | r0.PackedValue;
+		}
+	}
+
+	[Serializable]
+	public struct BC2ABlock
+	{
+		public ulong PackedValue;
 	}
 }

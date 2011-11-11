@@ -6,24 +6,125 @@ using System.Text;
 namespace BCn
 {
 
-	public class Compressor
+	/// <summary>
+	/// Encodes BC3(alpha)/BC4/BС5 blocks.
+	/// </summary>
+	/// <remarks>
+	/// To use the encoder, you must first load a block to encode
+	/// using one of the <see cref="LoadBlock"/> overloads, after
+	/// which you call either <see cref="EncodeSigned"/> or
+	/// <see cref="EncodeUnsigned"/>. Note that encoding a block
+	/// alters the loaded values in place - call <c>LoadBlock</c>
+	/// before calling one of the encode methods again.
+	/// </remarks>
+	public class RBlockEncoder
 	{
 		/// <summary>
-		/// Encode a block of signed values.
+		/// Loads a block of values for subsequent encoding.
 		/// </summary>
 		/// <param name="values">The values to encode.</param>
 		/// <param name="index">The index to start reading values.</param>
 		/// <param name="rowPitch">The pitch between rows of values.</param>
 		/// <param name="colPitch">The pitch between subsequent values within a row.</param>
-		/// <returns></returns>
-		public SignedRBlock EncodeSigned(
-			float[] values, int index = 0,
+		public void LoadBlock( float[] values, int index = 0,
 			int rowPitch = 4, int colPitch = 1 )
+		{
+			var target = this.values;
+
+			if( rowPitch == 4 && colPitch == 1 )
+			{
+				//get the fast case out of the way
+				Array.Copy( values, index, target, 0, 16 );
+				return;
+			}
+
+			int i = index;
+
+			target[0] = values[i];
+			target[1] = values[i += colPitch];
+			target[2] = values[i += colPitch];
+			target[3] = values[i += colPitch];
+
+			i = index += rowPitch;
+
+			target[4] = values[i];
+			target[5] = values[i += colPitch];
+			target[6] = values[i += colPitch];
+			target[7] = values[i += colPitch];
+
+			i = index += rowPitch;
+
+			target[8] = values[i];
+			target[9] = values[i += colPitch];
+			target[10] = values[i += colPitch];
+			target[11] = values[i += colPitch];
+
+			i = index + rowPitch;
+
+			target[12] = values[i];
+			target[13] = values[i += colPitch];
+			target[14] = values[i += colPitch];
+			target[15] = values[i += colPitch];
+		}
+
+		/// <summary>
+		/// Loads a block of values for subsequent encoding.
+		/// </summary>
+		/// <param name="values">The values to encode.</param>
+		/// <param name="rowPitch">The pitch between rows of values.</param>
+		/// <param name="colPitch">The pitch between subsequent values within a row.</param>
+		public unsafe void LoadBlock( float* values,
+			int rowPitch = 4, int colPitch = 1 )
+		{
+			var target = this.values;
+
+			if( rowPitch == 4 && colPitch == 1 )
+			{
+				//get the fast case out of the way
+				System.Runtime.InteropServices.Marshal.Copy(
+					(IntPtr)values, target, 0, 16 );
+				return;
+			}
+
+			int rowBase = 0;
+			int i = rowBase;
+
+			target[0] = values[i];
+			target[1] = values[i += colPitch];
+			target[2] = values[i += colPitch];
+			target[3] = values[i += colPitch];
+
+			i = rowBase += rowPitch;
+
+			target[4] = values[i];
+			target[5] = values[i += colPitch];
+			target[6] = values[i += colPitch];
+			target[7] = values[i += colPitch];
+
+			i = rowBase += rowPitch;
+
+			target[8] = values[i];
+			target[9] = values[i += colPitch];
+			target[10] = values[i += colPitch];
+			target[11] = values[i += colPitch];
+
+			i = rowBase + rowPitch;
+
+			target[12] = values[i];
+			target[13] = values[i += colPitch];
+			target[14] = values[i += colPitch];
+			target[15] = values[i += colPitch];
+		}
+
+		/// <summary>
+		/// Encode a block of signed values.
+		/// </summary>
+		/// <returns></returns>
+		public SignedRBlock EncodeSigned()
 		{
 			//load the input and scan for the boundary condition
 
-			LoadValues( values, index, rowPitch, colPitch );
-			ScanMinMax( -1F, 1F);
+			ClampAndFindRange( -1F, 1F );
 
 			bool hasEndPoint = minValue == -1F || maxValue == 1F;
 
@@ -36,8 +137,8 @@ namespace BCn
 
 			var ret = new SignedRBlock();
 
-			ret.R0 = FloatToSNorm( r0 );
-			ret.R1 = FloatToSNorm( r1 );
+			ret.R0 = Helpers.FloatToSNorm( r0 );
+			ret.R1 = Helpers.FloatToSNorm( r1 );
 
 			ret.GetRValues( interpValues );
 
@@ -46,39 +147,15 @@ namespace BCn
 			return ret;
 		}
 
-		private static sbyte FloatToSNorm( float v )
-		{
-			//clamp
-
-			if( v > 1 ) v = 1;
-			else if( v < -1 ) v = -1;
-
-			//scale and bias (so the rounding is correct)
-
-			v *= 127;
-			v += v >= 0 ? 0.5F : -0.5F;
-
-			//round and return
-
-			return (sbyte)v;
-		}
-
 		/// <summary>
 		/// Encode a block of unsigned values.
 		/// </summary>
-		/// <param name="values">The values to encode.</param>
-		/// <param name="index">The index to start reading values.</param>
-		/// <param name="rowPitch">The pitch between rows of values.</param>
-		/// <param name="colPitch">The pitch between subsequent values within a row.</param>
 		/// <returns></returns>
-		public UnsignedRBlock EncodeUnsigned(
-			float[] values, int index = 0,
-			int rowPitch = 4, int colPitch = 1 )
+		public UnsignedRBlock EncodeUnsigned()
 		{
 			//load the input and scan for the boundary condition
 
-			LoadValues( values, index, rowPitch, colPitch );
-			ScanMinMax( 0F, 1F );
+			ClampAndFindRange( 0F, 1F );
 
 			bool hasEndPoint = minValue == 0F || maxValue == 1F;
 
@@ -91,8 +168,8 @@ namespace BCn
 
 			var ret = new UnsignedRBlock();
 
-			ret.R0 = FloatToUNorm( r0 );
-			ret.R1 = FloatToUNorm( r1 );
+			ret.R0 = Helpers.FloatToUNorm( r0 );
+			ret.R1 = Helpers.FloatToUNorm( r1 );
 
 			ret.GetRValues( interpValues );
 
@@ -101,90 +178,37 @@ namespace BCn
 			return ret;
 		}
 
-		private static byte FloatToUNorm( float v )
-		{
-			//clamp
-
-			if( v > 1 ) v = 1;
-			else if( v < 1 ) v = -1;
-
-			//scale and truncate
-			return (byte)(v * 255);
-		}
-
-		private float[] values = new float[16];
-		private float minValue, maxValue;
-
-		private void LoadValues( float[] values, int index, int rowPitch, int colPitch )
+		private void ClampAndFindRange( float clampMin, float clampMax )
 		{
 			var target = this.values;
 
-			if( rowPitch == 4 && colPitch == 1 )
-			{
-				//get the fast case out of the way
-				Array.Copy( values, index, target, 0, target.Length );
-				return;
-			}
+			var v0 = target[0];
 
-			int i = index;
-
-			target[0] = values[i];
-			target[1] = values[i += colPitch];
-			target[2] = values[i += colPitch];
-			target[3] = values[i += colPitch];
-
-			index += rowPitch;
-			i = index;
-
-			target[4] = values[i];
-			target[5] = values[i += colPitch];
-			target[6] = values[i += colPitch];
-			target[7] = values[i += colPitch];
-
-			index += rowPitch;
-			i = index;
-
-			target[8] = values[i];
-			target[9] = values[i += colPitch];
-			target[10] = values[i += colPitch];
-			target[11] = values[i += colPitch];
-
-			index += rowPitch;
-			i = index;
-
-			target[12] = values[i];
-			target[13] = values[i += colPitch];
-			target[14] = values[i += colPitch];
-			target[15] = values[i += colPitch];
-		}
-
-		private void ScanMinMax( float clampMin, float clampMax )
-		{
-			var v0 = values[0];
-
-			if( v0 < clampMin ) values[0] = v0 = clampMin;
-			else if( v0 > clampMax ) values[0] = v0 = clampMax;
+			if( v0 < clampMin ) target[0] = v0 = clampMin;
+			else if( v0 > clampMax ) target[0] = v0 = clampMax;
 
 			minValue = maxValue = v0;
 
-			for( int i = 1; i < values.Length; i++ )
+			for( int i = 1; i < target.Length; i++ )
 			{
-				var v = values[i];
+				var v = target[i];
 
-				if( v < clampMin ) values[i] = v = clampMin;
-				else if( v > clampMax ) values[i] = v = clampMax;
+				if( v < clampMin ) target[i] = v = clampMin;
+				else if( v > clampMax ) target[i] = v = clampMax;
 
 				if( v < minValue ) minValue = v;
 				else if( v > maxValue ) maxValue = v;
 			}
 		}
 
+		private float[] values = new float[16];
+		private float[] interpValues = new float[8];
+		private float minValue, maxValue;
+
 		private static readonly float[] pC6 = { 5.0f / 5.0f, 4.0f / 5.0f, 3.0f / 5.0f, 2.0f / 5.0f, 1.0f / 5.0f, 0.0f / 5.0f };
 		private static readonly float[] pD6 = { 0.0f / 5.0f, 1.0f / 5.0f, 2.0f / 5.0f, 3.0f / 5.0f, 4.0f / 5.0f, 5.0f / 5.0f };
 		private static readonly float[] pC8 = { 7.0f / 7.0f, 6.0f / 7.0f, 5.0f / 7.0f, 4.0f / 7.0f, 3.0f / 7.0f, 2.0f / 7.0f, 1.0f / 7.0f, 0.0f / 7.0f };
 		private static readonly float[] pD8 = { 0.0f / 7.0f, 1.0f / 7.0f, 2.0f / 7.0f, 3.0f / 7.0f, 4.0f / 7.0f, 5.0f / 7.0f, 6.0f / 7.0f, 7.0f / 7.0f };
-
-		private float[] interpValues = new float[8];
 
 		private void SpanValues( out float r0, out float r1, bool isSixPointInterp, bool isSigned )
 		{
