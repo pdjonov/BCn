@@ -241,9 +241,9 @@ namespace BCn
 
 			//quantize the endpoints
 
-			int uSteps = alphaMask != 0 ? 3 : 4;
+			bool weightValues = !UseUniformWeighting;
 
-			if( !UseUniformWeighting )
+			if( weightValues )
 			{
 				r0.R *= RInvWeight;
 				r0.G *= GInvWeight;
@@ -263,7 +263,7 @@ namespace BCn
 			pr0.Unpack( out r0 );
 			pr1.Unpack( out r1 );
 
-			if( !UseUniformWeighting )
+			if( weightValues )
 			{
 				r0.R *= RWeight;
 				r0.G *= GWeight;
@@ -293,7 +293,7 @@ namespace BCn
 
 			uint[] pSteps;
 
-			if( uSteps == 3 )
+			if( alphaMask != 0 )
 			{
 				pSteps = pSteps3;
 
@@ -315,7 +315,7 @@ namespace BCn
 			dir.G = interpValues[1].G - s0.G;
 			dir.B = interpValues[1].B - s0.B;
 
-			float fSteps = uSteps - 1;
+			float fSteps = alphaMask != 0 ? 2 : 3;
 			float fScale = (pr0.PackedValue != pr1.PackedValue) ?
 				(fSteps / (dir.R * dir.R + dir.G * dir.G + dir.B * dir.B)) : 0.0F;
 
@@ -323,7 +323,9 @@ namespace BCn
 			dir.G *= fScale;
 			dir.B *= fScale;
 
-			if( DitherRgb )
+			bool dither = DitherRgb;
+
+			if( dither )
 				Array.Clear( error, 0, 16 );
 
 			for( int i = 0; i < values.Length; i++ )
@@ -336,14 +338,14 @@ namespace BCn
 				{
 					var cl = values[i];
 
-					if( !UseUniformWeighting )
+					if( weightValues )
 					{
 						cl.R *= RWeight;
 						cl.G *= GWeight;
 						cl.B *= BWeight;
 					}
 
-					if( DitherRgb )
+					if( dither )
 					{
 						var e = error[i];
 
@@ -368,7 +370,7 @@ namespace BCn
 
 					ret.PackedValue |= (ulong)iStep << (32 + i * 2);
 
-					if( DitherRgb )
+					if( dither )
 					{
 						RgbF32 e, d, interp = interpValues[iStep];
 
