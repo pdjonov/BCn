@@ -10,11 +10,6 @@ namespace BCn
 		public bool DitherRgb { get; set; }
 		public bool UseUniformWeighting { get; set; }
 
-		public BC1BlockEncoder()
-		{
-			DitherRgb = true;
-		}
-
 		public void LoadBlock(
 			float[] rValues, int rIndex,
 			float[] gValues, int gIndex,

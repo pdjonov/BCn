@@ -40,6 +40,50 @@ namespace BCn
 	public struct BC2ABlock
 	{
 		public ulong PackedValue;
+
+		public float this[int index]
+		{
+			get
+			{
+				if( index < 0 || index >= 16 )
+					throw new ArgumentOutOfRangeException( "index" );
+
+				return ((PackedValue >> (index * 4)) & 0xF) * (1F / 15F);
+			}
+
+			set
+			{
+				if( index < 0 || index >= 16 )
+					throw new ArgumentOutOfRangeException( "index" );
+
+				int v;
+				if( value <= 0 ) v = 0;
+				else if( value >= 1 ) v = 15;
+				else v = (int)(value * 15F + 0.5F);
+
+				int shift = index * 4;
+
+				PackedValue = (PackedValue & ~(0xFU << shift)) | ((ulong)v << shift);
+			}
+		}
+
+		public void Unpack( float[] values, int index = 0 )
+		{
+			if( values == null )
+				throw new ArgumentNullException( "values" );
+
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( values.Length - index < 16 )
+				throw new ArgumentOutOfRangeException( "16" );
+
+			ulong v = PackedValue;
+			for( int i = 0; i < 16; i++ )
+			{
+				values[i] = (v & 0xF) * 15F;
+				v >>= 4;
+			}
+		}
 	}
 
 	/// <summary>

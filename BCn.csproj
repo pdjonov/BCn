@@ -38,6 +38,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BC2ABlockEncoder.cs" />
     <Compile Include="Blocks.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="BC4BlockEncoder.cs" />
