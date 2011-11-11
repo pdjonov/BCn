@@ -5,12 +5,12 @@ using System.Text;
 
 namespace BCn
 {
-	public class RgbBlockEncoder
+	public class BC1BlockEncoder
 	{
 		public bool DitherRgb { get; set; }
 		public bool UseUniformWeighting { get; set; }
 
-		public RgbBlockEncoder()
+		public BC1BlockEncoder()
 		{
 			DitherRgb = true;
 		}
@@ -224,13 +224,13 @@ namespace BCn
 			LoadAlphaMask( target, 0, alphaRef );
 		}
 
-		public RgbBlock Encode()
+		public BC1Block Encode()
 		{
-			RgbBlock ret;
+			BC1Block ret;
 
 			if( alphaMask == 0xFFFF )
 			{
-				ret.PackedValue = RgbBlock.TransparentValue;
+				ret.PackedValue = BC1Block.TransparentValue;
 				return ret;
 			}
 
@@ -258,7 +258,7 @@ namespace BCn
 			var pr1 = Rgb565.Pack( r1 );
 
 			if( alphaMask == 0 && pr0.PackedValue == pr1.PackedValue )
-				return new RgbBlock( pr0, pr1 );
+				return new BC1Block( pr0, pr1 );
 
 			pr0.Unpack( out r0 );
 			pr1.Unpack( out r1 );
@@ -280,13 +280,13 @@ namespace BCn
 
 			if( (alphaMask != 0) == (pr0.PackedValue <= pr1.PackedValue) )
 			{
-				ret = new RgbBlock( pr0, pr1 );
+				ret = new BC1Block( pr0, pr1 );
 				interpValues[0] = s0 = r0;
 				interpValues[1] = r1;
 			}
 			else
 			{
-				ret = new RgbBlock( pr1, pr0 );
+				ret = new BC1Block( pr1, pr0 );
 				interpValues[0] = s0 = r1;
 				interpValues[1] = r0;
 			}

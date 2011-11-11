@@ -1,13 +1,79 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace BCn
 {
 	/// <summary>
-	/// An unsigned single-channel block (BC3 A, BC4 R, BC5 R and G).
+	/// The BC1 format.
+	/// </summary>
+	/// <remarks>
+	/// This is also used by the BC2 and BC3 formats.
+	/// </remarks>
+	[Serializable]
+	public struct BC1Block
+	{
+		public ulong PackedValue;
+
+		public const ulong TransparentValue = 0xFFFFFFFFFFFF0000UL;
+
+		public Rgb565 Rgb0
+		{
+			get { return new Rgb565( (ushort)PackedValue ); }
+			set { PackedValue = (PackedValue & ~0xFFFFUL) | value.PackedValue; }
+		}
+
+		public Rgb565 Rgb1
+		{
+			get { return new Rgb565( (ushort)(PackedValue >> 16) ); }
+			set { PackedValue = (PackedValue & ~0xFFFF0000UL) | ((ulong)value.PackedValue << 16); }
+		}
+
+		public BC1Block( Rgb565 r0, Rgb565 r1 )
+		{
+			PackedValue = ((ulong)r1.PackedValue << 16) | r0.PackedValue;
+		}
+	}
+
+	/// <summary>
+	/// The BC2 alpha block format.
 	/// </summary>
 	[Serializable]
-	public struct UnsignedRBlock
+	public struct BC2ABlock
+	{
+		public ulong PackedValue;
+	}
+
+	/// <summary>
+	/// The BC2 block format.
+	/// </summary>
+	[System.Runtime.InteropServices.StructLayout(
+		System.Runtime.InteropServices.LayoutKind.Sequential ),
+	Serializable]
+	public struct BC2Block
+	{
+		public BC1Block Rgb;
+		public BC2ABlock A;
+	};
+
+	/// <summary>
+	/// The BC3 block format.
+	/// </summary>
+	[System.Runtime.InteropServices.StructLayout(
+		System.Runtime.InteropServices.LayoutKind.Sequential ),
+	Serializable]
+	public struct BC3Block
+	{
+		public BC1Block Rgb;
+		public BC4UBlock A;
+	};
+
+	/// <summary>
+	/// The signed BC4 block format.
+	/// </summary>
+	/// <remarks>
+	/// This is used by the signed BC5 format.
+	/// </remarks>
+	[Serializable]
+	public struct BC4UBlock
 	{
 		public ulong PackedValue;
 
@@ -192,10 +258,13 @@ namespace BCn
 	}
 
 	/// <summary>
-	/// A signed single-channel block (BC3 A, BC4 R, BC5 R and G).
+	/// The unsigned BC4 block format.
 	/// </summary>
+	/// <remarks>
+	/// This is used by the unsigned BC5 format.
+	/// </remarks>
 	[Serializable]
-	public struct SignedRBlock
+	public struct BC4SBlock
 	{
 		public ulong PackedValue;
 
@@ -399,6 +468,25 @@ namespace BCn
 		}
 	}
 
+	[System.Runtime.InteropServices.StructLayout(
+		System.Runtime.InteropServices.LayoutKind.Sequential ),
+	Serializable]
+	public struct BC5SBlock
+	{
+		public BC4SBlock R, G;
+	}
+
+	/// <summary>
+	/// The BC5 block format.
+	/// </summary>
+	[System.Runtime.InteropServices.StructLayout(
+		System.Runtime.InteropServices.LayoutKind.Sequential ),
+	Serializable]
+	public struct BC5UBlock
+	{
+		public BC4UBlock R, G;
+	}
+
 	[Serializable]
 	public struct Rgb565
 	{
@@ -507,39 +595,5 @@ namespace BCn
 			cl.G = GF;
 			cl.B = BF;
 		}
-	}
-
-	/// <summary>
-	/// An unsigned three-channel block (BC1, BC2, BC3).
-	/// </summary>
-	[Serializable]
-	public struct RgbBlock
-	{
-		public ulong PackedValue;
-
-		public const ulong TransparentValue = 0xFFFFFFFFFFFF0000UL;
-
-		public Rgb565 Rgb0
-		{
-			get { return new Rgb565( (ushort)PackedValue ); }
-			set { PackedValue = (PackedValue & ~0xFFFFUL) | value.PackedValue; }
-		}
-
-		public Rgb565 Rgb1
-		{
-			get { return new Rgb565( (ushort)(PackedValue >> 16) ); }
-			set { PackedValue = (PackedValue & ~0xFFFF0000UL) | ((ulong)value.PackedValue << 16); }
-		}
-
-		public RgbBlock( Rgb565 r0, Rgb565 r1 )
-		{
-			PackedValue = ((ulong)r1.PackedValue << 16) | r0.PackedValue;
-		}
-	}
-
-	[Serializable]
-	public struct BC2ABlock
-	{
-		public ulong PackedValue;
 	}
 }

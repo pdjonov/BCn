@@ -17,7 +17,7 @@ namespace BCn
 	/// alters the loaded values in place - call <c>LoadBlock</c>
 	/// before calling one of the encode methods again.
 	/// </remarks>
-	public class RBlockEncoder
+	public class BC4BlockEncoder
 	{
 		/// <summary>
 		/// Loads a block of values for subsequent encoding.
@@ -120,7 +120,7 @@ namespace BCn
 		/// Encode a block of signed values.
 		/// </summary>
 		/// <returns></returns>
-		public SignedRBlock EncodeSigned()
+		public BC4SBlock EncodeSigned()
 		{
 			//load the input and scan for the boundary condition
 
@@ -135,7 +135,7 @@ namespace BCn
 
 			//roundtrip it through integer format
 
-			var ret = new SignedRBlock();
+			var ret = new BC4SBlock();
 
 			ret.R0 = Helpers.FloatToSNorm( r0 );
 			ret.R1 = Helpers.FloatToSNorm( r1 );
@@ -151,7 +151,7 @@ namespace BCn
 		/// Encode a block of unsigned values.
 		/// </summary>
 		/// <returns></returns>
-		public UnsignedRBlock EncodeUnsigned()
+		public BC4UBlock EncodeUnsigned()
 		{
 			//load the input and scan for the boundary condition
 
@@ -166,7 +166,7 @@ namespace BCn
 
 			//roundtrip it through integer format
 
-			var ret = new UnsignedRBlock();
+			var ret = new BC4UBlock();
 
 			ret.R0 = Helpers.FloatToUNorm( r0 );
 			ret.R1 = Helpers.FloatToUNorm( r1 );
