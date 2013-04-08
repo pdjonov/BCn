@@ -28,8 +28,8 @@ namespace BCn
 		{
 			//clamp
 
-			if( v > 1 ) v = 1;
-			else if( v < 1 ) v = -1;
+			if( v > 1 ) return 255;
+			if( v < 0 ) return 0;
 
 			//scale and truncate
 			return (byte)(v * 255);

@@ -177,7 +177,7 @@ namespace BCn
 				pD = pD8;
 			}
 
-			float rangeMin = isSigned ? -1F : 1F;
+			float rangeMin = isSigned ? -1F : 0F;
 			const float rangeMax = 1F;
 
 			//find min and max points as a starting solution
@@ -302,12 +302,12 @@ namespace BCn
 
 			for( int i = 0; i < values.Length; ++i )
 			{
-				int iBest = 0;
-				float bestDelta = 100000;
-
 				var v = values[i];
 
-				for( int j = 0; j < interpValues.Length; j++ )
+				int iBest = 0;
+				float bestDelta = Math.Abs( interpValues[0] - v );
+
+				for( int j = 1; j < interpValues.Length; j++ )
 				{
 					float delta = Math.Abs( interpValues[j] - v );
 					
@@ -317,7 +317,6 @@ namespace BCn
 						bestDelta = delta;
 					}
 				}
-
 
 				int shift = 16 + 3 * i;
 				ret |= (ulong)iBest << shift;

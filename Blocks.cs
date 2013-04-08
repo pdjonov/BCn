@@ -94,8 +94,8 @@ namespace BCn
 	Serializable]
 	public struct BC2Block
 	{
-		public BC1Block Rgb;
 		public BC2ABlock A;
+		public BC1Block Rgb;
 	};
 
 	/// <summary>
@@ -106,8 +106,8 @@ namespace BCn
 	Serializable]
 	public struct BC3Block
 	{
-		public BC1Block Rgb;
 		public BC4UBlock A;
+		public BC1Block Rgb;
 	};
 
 	/// <summary>
