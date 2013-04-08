@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace BCn
 {
@@ -91,7 +88,7 @@ namespace BCn
 			ret.R0 = Helpers.FloatToSNorm( r0 );
 			ret.R1 = Helpers.FloatToSNorm( r1 );
 
-			ret.GetRValues( interpValues );
+			ret.GetPalette( interpValues );
 
 			ret.PackedValue |= FindClosest();
 
@@ -122,7 +119,7 @@ namespace BCn
 			ret.R0 = Helpers.FloatToUNorm( r0 );
 			ret.R1 = Helpers.FloatToUNorm( r1 );
 
-			ret.GetRValues( interpValues );
+			ret.GetPalette( interpValues );
 
 			ret.PackedValue |= FindClosest();
 

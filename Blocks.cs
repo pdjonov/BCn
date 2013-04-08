@@ -28,9 +28,200 @@ namespace BCn
 			set { PackedValue = (PackedValue & ~0xFFFF0000UL) | ((ulong)value.PackedValue << 16); }
 		}
 
+		public bool HasTransparentValues
+		{
+			get { return (ushort)PackedValue <= (ushort)(PackedValue >> 16); }
+		}
+
 		public BC1Block( Rgb565 r0, Rgb565 r1 )
 		{
 			PackedValue = ((ulong)r1.PackedValue << 16) | r0.PackedValue;
+		}
+
+		public void GetPalette( Rgb565[] palette, int index = 0 )
+		{
+			if( palette == null )
+				throw new ArgumentNullException( "palette" );
+			
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( palette.Length - index < 4 )
+				throw new ArgumentOutOfRangeException( "index" );
+
+			var c0 = Rgb0;
+			var c1 = Rgb1;
+
+			palette[index + 0] = c0;
+			palette[index + 1] = c1;
+
+			if( HasTransparentValues )
+			{
+				var interp = new Rgb565();
+
+				interp.R = (c0.R + c1.R) / 2;
+				interp.G = (c0.G + c1.G) / 2;
+				interp.B = (c0.B + c1.B) / 2;
+
+				palette[index + 2] = interp;
+
+				palette[index + 3] = new Rgb565( 0 );
+			}
+			else
+			{
+				var interp = new Rgb565();
+
+				interp.R = (c0.R * 2 + c1.R) / 3;
+				interp.G = (c0.G * 2 + c1.G) / 3;
+				interp.B = (c0.B * 2 + c1.B) / 3;
+
+				palette[index + 2] = interp;
+
+				interp.R = (c0.R + c1.R * 2) / 3;
+				interp.G = (c0.G + c1.G * 2) / 3;
+				interp.B = (c0.B + c1.B * 2) / 3;
+
+				palette[index + 3] = interp;
+			}
+		}
+
+		public void GetPalette( float[] rPalette, float[] gPalette,
+			float[] bPalette, float[] aPalette = null, int index = 0 )
+		{
+			if( rPalette == null )
+				throw new ArgumentNullException( "rPalette" );
+			if( gPalette == null )
+				throw new ArgumentNullException( "gPalette" );
+			if( bPalette == null )
+				throw new ArgumentNullException( "bPalette" );
+
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( rPalette.Length - index < 4 || gPalette.Length - index < 4 ||
+				bPalette.Length - index < 4 || (aPalette != null && aPalette.Length - index < 4) )
+				throw new ArgumentOutOfRangeException( "index" );
+
+			var c0 = Rgb0;
+			var c1 = Rgb1;
+
+			var r0 = c0.RF;
+			var g0 = c0.GF;
+			var b0 = c0.BF;
+
+			var r1 = c1.RF;
+			var g1 = c1.GF;
+			var b1 = c1.BF;
+
+			rPalette[index + 0] = r0;
+			gPalette[index + 0] = g0;
+			bPalette[index + 0] = b0;
+
+			rPalette[index + 1] = r1;
+			gPalette[index + 1] = g1;
+			bPalette[index + 1] = b1;
+
+			if( HasTransparentValues )
+			{
+				rPalette[index + 2] = (r0 + r1) / 2;
+				gPalette[index + 2] = (g0 + g1) / 2;
+				bPalette[index + 2] = (b0 + b1) / 2;
+
+				rPalette[index + 3] = 0;
+				gPalette[index + 3] = 0;
+				bPalette[index + 3] = 0;
+			}
+			else
+			{
+				rPalette[index + 2] = (r0 * 2 + r1) / 3;
+				gPalette[index + 2] = (g0 * 2 + g1) / 3;
+				bPalette[index + 2] = (b0 * 2 + b1) / 3;
+
+				rPalette[index + 3] = (r0 + r1 * 2) / 3;
+				gPalette[index + 3] = (g0 + g1 * 2) / 3;
+				bPalette[index + 3] = (b0 + b1 * 2) / 3;
+			}
+
+			if( aPalette != null )
+			{
+				aPalette[index + 0] = 1;
+				aPalette[index + 1] = 1;
+				aPalette[index + 2] = 1;
+				aPalette[index + 3] = HasTransparentValues ? 0 : 1;
+			}
+		}
+
+		public void GetIndices( int[] indices, int index = 0 )
+		{
+			if( indices == null )
+				throw new ArgumentNullException( "indices" );
+
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( indices.Length - index < 16 )
+				throw new ArgumentOutOfRangeException( "index" );
+
+			uint idxs = (uint)(PackedValue >> 32);
+			for( int i = 0; i < 16; i++ )
+			{
+				indices[index + i] = (int)(idxs & 0x3);
+				idxs >>= 2;
+			}						
+		}
+
+		/// <summary>
+		/// Gets the color index of a given pixel (linear address).
+		/// </summary>
+		/// <param name="index">The index of the pixel.</param>
+		/// <returns>
+		/// If <seealso cref="HasTransparentValues"/> is true, index <c>3</c>
+		/// is the transparent index.
+		/// </returns>
+		public int this[int index]
+		{
+			get
+			{
+				if( index < 0 || index >= 16 )
+					throw new ArgumentOutOfRangeException( "index" );
+
+				var idx = (int)(PackedValue >> (32 + index * 2));
+
+				return idx;
+			}
+
+			set
+			{
+				if( index < 0 || index >= 16 )
+					throw new ArgumentOutOfRangeException( "index" );
+				if( value < 0 || value > 3 )
+					throw new ArgumentOutOfRangeException( "value" );
+
+				int shift = 32 + index * 2;
+
+				PackedValue = (PackedValue & ~(0x3UL << index)) |
+					((ulong)value << index);
+			}
+		}
+
+		public int this[int x, int y]
+		{
+			get
+			{
+				if( x < 0 || x >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+				if( y < 0 || y >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+
+				return this[y * 4 + x];
+			}
+
+			set
+			{
+				if( x < 0 || x >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+				if( y < 0 || y >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+
+				this[y * 4 + x] = value;
+			}
 		}
 	}
 
@@ -68,7 +259,30 @@ namespace BCn
 			}
 		}
 
-		public void Unpack( float[] values, int index = 0 )
+		public float this[int x, int y]
+		{
+			get
+			{
+				if( x < 0 || x >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+				if( y < 0 || y >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+
+				return this[y * 4 + x];
+			}
+
+			set
+			{
+				if( x < 0 || x >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+				if( y < 0 || y >= 4 )
+					throw new ArgumentOutOfRangeException( "x" );
+
+				this[y * 4 + x] = value;
+			}
+		}
+
+		public void GetValues( float[] values, int index = 0 )
 		{
 			if( values == null )
 				throw new ArgumentNullException( "values" );
@@ -76,13 +290,39 @@ namespace BCn
 			if( index < 0 )
 				throw new ArgumentOutOfRangeException( "index" );
 			if( values.Length - index < 16 )
-				throw new ArgumentOutOfRangeException( "16" );
+				throw new ArgumentOutOfRangeException( "index" );
 
 			ulong v = PackedValue;
 			for( int i = 0; i < 16; i++ )
 			{
-				values[i] = (v & 0xF) * 15F;
+				values[index + i] = (v & 0xF) * 15F;
 				v >>= 4;
+			}
+		}
+
+		public void GetValues( float[] values, int index, int pitch )
+		{
+			if( values == null )
+				throw new ArgumentNullException( "values" );
+
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( values.Length - index < 16 )
+				throw new ArgumentOutOfRangeException( "index" );
+
+			int endOffset = index + pitch * 3 + 3;
+			if( endOffset < 0 || endOffset > values.Length )
+				throw new ArgumentOutOfRangeException();
+
+			ulong v = PackedValue;
+			for( int y = 0; y < 4; y++ )
+			{
+				int idx = index + y * pitch;
+				for( int x = 0; x < 4; x++ )
+				{
+					values[idx] = (v & 0xF) * 15F;
+					v >>= 4;
+				}
 			}
 		}
 	}
@@ -169,7 +409,7 @@ namespace BCn
 		/// <summary>
 		/// Computes all of the R values.
 		/// </summary>
-		public void GetRValues( byte[] palette, int index = 0 )
+		public void GetPalette( byte[] palette, int index = 0 )
 		{
 			if( palette == null )
 				throw new ArgumentNullException( "palette" );
@@ -207,7 +447,7 @@ namespace BCn
 		/// <summary>
 		/// Computes all of the R values.
 		/// </summary>
-		public void GetRValues( float[] palette, int index = 0 )
+		public void GetPalette( float[] palette, int index = 0 )
 		{
 			if( palette == null )
 				throw new ArgumentNullException( "palette" );
@@ -242,6 +482,24 @@ namespace BCn
 				palette[index + 5] = (r0 * 3F + r1 * 4F) / 7F;
 				palette[index + 6] = (r0 * 2F + r1 * 5F) / 7F;
 				palette[index + 7] = (r0 * 1F + r1 * 6F) / 7F;
+			}
+		}
+
+		public void GetIndices( int[] indices, int index = 0 )
+		{
+			if( indices == null )
+				throw new ArgumentNullException( "indices" );
+
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( indices.Length - index < 16 )
+				throw new ArgumentOutOfRangeException( "index" );
+
+			ulong idxs = PackedValue >> 16;
+			for( int i = 0; i < 16; i++ )
+			{
+				indices[index + i] = (int)(idxs & 0x7);
+				idxs >>= 3;
 			}
 		}
 
@@ -380,7 +638,7 @@ namespace BCn
 		/// <summary>
 		/// Computes all of the R values.
 		/// </summary>
-		public void GetRValues( sbyte[] palette, int index = 0 )
+		public void GetPalette( sbyte[] palette, int index = 0 )
 		{
 			if( palette == null )
 				throw new ArgumentNullException( "palette" );
@@ -418,7 +676,7 @@ namespace BCn
 		/// <summary>
 		/// Computes all of the R values.
 		/// </summary>
-		public void GetRValues( float[] palette, int index = 0 )
+		public void GetPalette( float[] palette, int index = 0 )
 		{
 			if( palette == null )
 				throw new ArgumentNullException( "palette" );
@@ -453,6 +711,24 @@ namespace BCn
 				palette[index + 5] = (r0 * 3F + r1 * 4F) / 7F;
 				palette[index + 6] = (r0 * 2F + r1 * 5F) / 7F;
 				palette[index + 7] = (r0 * 1F + r1 * 6F) / 7F;
+			}
+		}
+
+		public void GetIndices( int[] indices, int index = 0 )
+		{
+			if( indices == null )
+				throw new ArgumentNullException( "indices" );
+
+			if( index < 0 )
+				throw new ArgumentOutOfRangeException( "index" );
+			if( indices.Length - index < 16 )
+				throw new ArgumentOutOfRangeException( "index" );
+
+			ulong idxs = PackedValue >> 16;
+			for( int i = 0; i < 16; i++ )
+			{
+				indices[index + i] = (int)(idxs & 0x7);
+				idxs >>= 3;
 			}
 		}
 
