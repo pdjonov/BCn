@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace BCn
 {
@@ -89,9 +90,7 @@ namespace BCn
 	/// <summary>
 	/// The BC2 block format.
 	/// </summary>
-	[System.Runtime.InteropServices.StructLayout(
-		System.Runtime.InteropServices.LayoutKind.Sequential ),
-	Serializable]
+	[Serializable, StructLayout( LayoutKind.Sequential )]
 	public struct BC2Block
 	{
 		public BC2ABlock A;
@@ -101,9 +100,7 @@ namespace BCn
 	/// <summary>
 	/// The BC3 block format.
 	/// </summary>
-	[System.Runtime.InteropServices.StructLayout(
-		System.Runtime.InteropServices.LayoutKind.Sequential ),
-	Serializable]
+	[Serializable, StructLayout( LayoutKind.Sequential )]
 	public struct BC3Block
 	{
 		public BC4UBlock A;
@@ -512,9 +509,7 @@ namespace BCn
 		}
 	}
 
-	[System.Runtime.InteropServices.StructLayout(
-		System.Runtime.InteropServices.LayoutKind.Sequential ),
-	Serializable]
+	[Serializable, StructLayout( LayoutKind.Sequential )]
 	public struct BC5SBlock
 	{
 		public BC4SBlock R, G;
@@ -523,9 +518,7 @@ namespace BCn
 	/// <summary>
 	/// The BC5 block format.
 	/// </summary>
-	[System.Runtime.InteropServices.StructLayout(
-		System.Runtime.InteropServices.LayoutKind.Sequential ),
-	Serializable]
+	[Serializable, StructLayout( LayoutKind.Sequential )]
 	public struct BC5UBlock
 	{
 		public BC4UBlock R, G;
