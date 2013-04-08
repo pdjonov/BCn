@@ -68,55 +68,6 @@ namespace BCn
 		}
 
 		/// <summary>
-		/// Loads a block of values for subsequent encoding.
-		/// </summary>
-		/// <param name="values">The values to encode.</param>
-		/// <param name="rowPitch">The pitch between rows of values.</param>
-		/// <param name="colPitch">The pitch between subsequent values within a row.</param>
-		public unsafe void LoadBlock( float* values,
-			int rowPitch = 4, int colPitch = 1 )
-		{
-			var target = this.values;
-
-			if( rowPitch == 4 && colPitch == 1 )
-			{
-				//get the fast case out of the way
-				System.Runtime.InteropServices.Marshal.Copy(
-					(IntPtr)values, target, 0, 16 );
-				return;
-			}
-
-			int rowBase = 0;
-			int i = rowBase;
-
-			target[0] = values[i];
-			target[1] = values[i += colPitch];
-			target[2] = values[i += colPitch];
-			target[3] = values[i += colPitch];
-
-			i = rowBase += rowPitch;
-
-			target[4] = values[i];
-			target[5] = values[i += colPitch];
-			target[6] = values[i += colPitch];
-			target[7] = values[i += colPitch];
-
-			i = rowBase += rowPitch;
-
-			target[8] = values[i];
-			target[9] = values[i += colPitch];
-			target[10] = values[i += colPitch];
-			target[11] = values[i += colPitch];
-
-			i = rowBase + rowPitch;
-
-			target[12] = values[i];
-			target[13] = values[i += colPitch];
-			target[14] = values[i += colPitch];
-			target[15] = values[i += colPitch];
-		}
-
-		/// <summary>
 		/// Encode a block of signed values.
 		/// </summary>
 		/// <returns></returns>
