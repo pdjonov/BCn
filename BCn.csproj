@@ -40,7 +40,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BC2ABlockEncoder.cs" />
+    <Compile Include="BCnImage.cs" />
     <Compile Include="Blocks.cs" />
+    <Compile Include="ImageEncodingHelper.cs" />
+    <Compile Include="ImageEncoder.cs" />
+    <Compile Include="FloatImage.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="BC4BlockEncoder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
