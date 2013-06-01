@@ -73,7 +73,12 @@ namespace BCn
 			BC2ABlock ret = new BC2ABlock();
 
 			if( dither )
-				Array.Clear( error, 0, 16 );
+			{
+				if( error == null )
+					error = new float[16];
+				else
+					Array.Clear( error, 0, 16 );
+			}
 
 			for( int i = 0; i < values.Length; i++ )
 			{
@@ -110,6 +115,6 @@ namespace BCn
 		}
 
 		private float[] values = new float[16];
-		private float[] error = new float[16];
+		private float[] error;
 	}
 }

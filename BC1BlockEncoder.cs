@@ -161,48 +161,64 @@ namespace BCn
 
 			if( DitherAlpha )
 			{
-				var target = this.alphaValues;
+				//when dithering, we load into a temporary array,
+				//apply dithering, and then continue loading from
+				//our temporary storage
+
+				//create the temporary storage the first time it's neeed
+
+				if( alphaValues == null )
+				{
+					alphaValues = new float[16];
+					alphaErrors = new float[16];
+				}
+				else
+				{
+					Array.Clear( alphaErrors, 0, 16 );
+				}
+
+				//load the values
 
 				if( rowPitch == 4 && colPitch == 1 )
 				{
-					Array.Copy( aValues, aIndex, target, 0, 16 );
+					Array.Copy( aValues, aIndex, alphaValues, 0, 16 );
 				}
 				else
 				{
 					aIdx = aIndex;
 
-					target[0] = aValues[aIdx];
-					target[1] = aValues[aIdx += colPitch];
-					target[2] = aValues[aIdx += colPitch];
-					target[3] = aValues[aIdx += colPitch];
+					alphaValues[0] = aValues[aIdx];
+					alphaValues[1] = aValues[aIdx += colPitch];
+					alphaValues[2] = aValues[aIdx += colPitch];
+					alphaValues[3] = aValues[aIdx += colPitch];
 
 					aIdx = aIndex += rowPitch;
 
-					target[4] = aValues[aIdx];
-					target[5] = aValues[aIdx += colPitch];
-					target[6] = aValues[aIdx += colPitch];
-					target[7] = aValues[aIdx += colPitch];
+					alphaValues[4] = aValues[aIdx];
+					alphaValues[5] = aValues[aIdx += colPitch];
+					alphaValues[6] = aValues[aIdx += colPitch];
+					alphaValues[7] = aValues[aIdx += colPitch];
 
 					aIdx = aIndex += rowPitch;
 
-					target[8] = aValues[aIdx];
-					target[9] = aValues[aIdx += colPitch];
-					target[10] = aValues[aIdx += colPitch];
-					target[11] = aValues[aIdx += colPitch];
+					alphaValues[8] = aValues[aIdx];
+					alphaValues[9] = aValues[aIdx += colPitch];
+					alphaValues[10] = aValues[aIdx += colPitch];
+					alphaValues[11] = aValues[aIdx += colPitch];
 
 					aIdx = aIndex + rowPitch;
 
-					target[12] = aValues[aIdx];
-					target[13] = aValues[aIdx += colPitch];
-					target[14] = aValues[aIdx += colPitch];
-					target[15] = aValues[aIdx += colPitch];
+					alphaValues[12] = aValues[aIdx];
+					alphaValues[13] = aValues[aIdx += colPitch];
+					alphaValues[14] = aValues[aIdx += colPitch];
+					alphaValues[15] = aValues[aIdx += colPitch];
 				}
 
-				Array.Clear( alphaErrors, 0, 16 );
+				//apply the dithering
 
-				for( int i = 0; i < target.Length; i++ )
+				for( int i = 0; i < alphaValues.Length; i++ )
 				{
-					var v = target[i];
+					var v = alphaValues[i];
 					var e = alphaErrors[i];
 
 					float a = (int)(v + e);
@@ -223,10 +239,12 @@ namespace BCn
 							alphaErrors[i + 5] += d * (1F / 16F);
 					}
 
-					target[i] = b;
+					alphaValues[i] = b;
 				}
 
-				aValues = target;
+				//and continue loading from our temporary storage
+
+				aValues = alphaValues;
 				aIndex = 0;
 
 				rowPitch = 4;
@@ -364,7 +382,12 @@ namespace BCn
 			bool dither = DitherRgb;
 
 			if( dither )
-				Array.Clear( error, 0, 16 );
+			{
+				if( error == null )
+					error = new RgbF32[16];
+				else
+					Array.Clear( error, 0, 16 );
+			}
 
 			for( int i = 0; i < values.Length; i++ )
 			{
@@ -468,10 +491,10 @@ namespace BCn
 
 		private RgbF32[] values = new RgbF32[16];
 		private RgbF32[] qvalues = new RgbF32[16];
-		private RgbF32[] error = new RgbF32[16];
+		private RgbF32[] error;
 
-		private float[] alphaValues = new float[16];
-		private float[] alphaErrors = new float[16];
+		private float[] alphaValues;
+		private float[] alphaErrors;
 		private uint alphaMask;
 		
 		private float[] fDir = new float[4];
