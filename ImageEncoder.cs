@@ -80,6 +80,7 @@ namespace BCn
 					var encBC1 = new BC1BlockEncoder();
 
 					encBC1.DitherRgb = DitherRgb;
+					encBC1.DitherAlpha = DitherAlpha;
 
 					return ( chanData, index, pitch ) =>
 						{

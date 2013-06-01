@@ -4,9 +4,23 @@ namespace BCn
 {
 	public class BC1BlockEncoder
 	{
+		/// <summary>
+		/// Gets or sets whether RGB data will be dithered.
+		/// </summary>
 		public bool DitherRgb { get; set; }
 		public bool UseUniformWeighting { get; set; }
 
+		/// <summary>
+		/// Loads a block of color data.
+		/// </summary>
+		/// <param name="rValues">The array to load red values from.</param>
+		/// <param name="rIndex">The index in <paramref name="rValues"/> to start loading from.</param>
+		/// <param name="gValues">The array to load green values from.</param>
+		/// <param name="gIndex">The index in <paramref name="rValues"/> to start loading from.</param>
+		/// <param name="bValues">The array to load blue values from.</param>
+		/// <param name="bIndex">The index in <paramref name="rValues"/> to start loading from.</param>
+		/// <param name="rowPitch">The number of array elements between successive rows.</param>
+		/// <param name="colPitch">The number of array elements between successive pixels.</param>
 		public void LoadBlock(
 			float[] rValues, int rIndex,
 			float[] gValues, int gIndex,
@@ -92,6 +106,14 @@ namespace BCn
 			target[15].B = bValues[bIdx += colPitch];
 		}
 
+		/// <summary>
+		/// Loads a block of color data.
+		/// </summary>
+		/// <param name="rValues">The array to load red values from.</param>
+		/// <param name="gValues">The array to load green values from.</param>
+		/// <param name="bValues">The array to load blue values from.</param>
+		/// <param name="rowPitch">The number of array elements between successive rows.</param>
+		/// <param name="colPitch">The number of array elements between successive pixels.</param>
 		public void LoadBlock(
 			float[] rValues, float[] gValues, float[] bValues,
 			int rowPitch = 4, int colPitch = 1 )
@@ -99,23 +121,119 @@ namespace BCn
 			LoadBlock( rValues, 0, gValues, 0, bValues, 0, rowPitch, colPitch );
 		}
 
+		/// <summary>
+		/// Sets the alpha mask to fully solid.
+		/// </summary>
 		public void ClearAlphaMask()
 		{
 			alphaMask = 0;
 		}
 
+		/// <summary>
+		/// Loads an alpha bitmask.
+		/// </summary>
+		/// <param name="mask">The bitmask to load.</param>
+		/// <remarks>
+		/// Set bits denote transparent pixels.
+		/// </remarks>
 		public void LoadAlphaMask( ushort mask )
 		{
 			alphaMask = mask;
 		}
 
+		public bool DitherAlpha { get; set; }
+
+		/// <summary>
+		/// Loads the alpha mask from floating-point alpha values.
+		/// </summary>
+		/// <param name="aValues">The array to read alpha values from.</param>
+		/// <param name="aIndex">The index at which to start reading <paramref name="aValues"/>.</param>
+		/// <param name="alphaRef">The alpha reference value. Alpha values smaller than this will be considered transparent.</param>
+		/// <param name="rowPitch">The number of array elements between rows.</param>
+		/// <param name="colPitch">The number of array elements between pixels within a row.</param>
 		public void LoadAlphaMask(
 			float[] aValues, int aIndex, float alphaRef = 0.5F,
 			int rowPitch = 4, int colPitch = 1 )
 		{
 			alphaMask = 0;
 
-			int aIdx = aIndex;
+			int aIdx;
+
+			if( DitherAlpha )
+			{
+				var target = this.alphaValues;
+
+				if( rowPitch == 4 && colPitch == 1 )
+				{
+					Array.Copy( aValues, aIndex, target, 0, 16 );
+				}
+				else
+				{
+					aIdx = aIndex;
+
+					target[0] = aValues[aIdx];
+					target[1] = aValues[aIdx += colPitch];
+					target[2] = aValues[aIdx += colPitch];
+					target[3] = aValues[aIdx += colPitch];
+
+					aIdx = aIndex += rowPitch;
+
+					target[4] = aValues[aIdx];
+					target[5] = aValues[aIdx += colPitch];
+					target[6] = aValues[aIdx += colPitch];
+					target[7] = aValues[aIdx += colPitch];
+
+					aIdx = aIndex += rowPitch;
+
+					target[8] = aValues[aIdx];
+					target[9] = aValues[aIdx += colPitch];
+					target[10] = aValues[aIdx += colPitch];
+					target[11] = aValues[aIdx += colPitch];
+
+					aIdx = aIndex + rowPitch;
+
+					target[12] = aValues[aIdx];
+					target[13] = aValues[aIdx += colPitch];
+					target[14] = aValues[aIdx += colPitch];
+					target[15] = aValues[aIdx += colPitch];
+				}
+
+				Array.Clear( alphaErrors, 0, 16 );
+
+				for( int i = 0; i < target.Length; i++ )
+				{
+					var v = target[i];
+					var e = alphaErrors[i];
+
+					float a = (int)(v + e);
+					float b = (int)(a + 0.5F);
+					float d = a - b;
+
+					if( (i & 3) != 3 )
+						alphaErrors[i + 1] += d * (7F / 16F);
+
+					if( i < 12 )
+					{
+						if( (i & 3) != 0 )
+							alphaErrors[i + 3] += d * (3F / 16F);
+
+						alphaErrors[i + 4] += d * (5F / 16F);
+
+						if( (i & 3) != 3 )
+							alphaErrors[i + 5] += d * (1F / 16F);
+					}
+
+					target[i] = b;
+				}
+
+				aValues = target;
+				aIndex = 0;
+
+				rowPitch = 4;
+				colPitch = 1;
+			}
+
+			aIdx = aIndex;
 
 			if( aValues[aIdx] < alphaRef ) alphaMask |= 0x0001;
 			if( aValues[aIdx += colPitch] < alphaRef ) alphaMask |= 0x0002;
@@ -142,78 +260,6 @@ namespace BCn
 			if( aValues[aIdx += colPitch] < alphaRef ) alphaMask |= 0x2000;
 			if( aValues[aIdx += colPitch] < alphaRef ) alphaMask |= 0x4000;
 			if( aValues[aIdx += colPitch] < alphaRef ) alphaMask |= 0x8000;
-		}
-
-		public void LoadDitheredAlphaMask(
-			float[] aValues, int aIndex, float alphaRef = 0.5F,
-			int rowPitch = 4, int colPitch = 1 )
-		{
-			var target = this.alphaValues;
-
-			if( rowPitch == 4 && colPitch == 1 )
-			{
-				Array.Copy( aValues, aIndex, target, 0, 16 );
-			}
-			else
-			{
-				int aIdx = aIndex;
-
-				target[0] = aValues[aIdx];
-				target[1] = aValues[aIdx += colPitch];
-				target[2] = aValues[aIdx += colPitch];
-				target[3] = aValues[aIdx += colPitch];
-
-				aIdx = aIndex += rowPitch;
-
-				target[4] = aValues[aIdx];
-				target[5] = aValues[aIdx += colPitch];
-				target[6] = aValues[aIdx += colPitch];
-				target[7] = aValues[aIdx += colPitch];
-
-				aIdx = aIndex += rowPitch;
-
-				target[8] = aValues[aIdx];
-				target[9] = aValues[aIdx += colPitch];
-				target[10] = aValues[aIdx += colPitch];
-				target[11] = aValues[aIdx += colPitch];
-
-				aIdx = aIndex + rowPitch;
-
-				target[12] = aValues[aIdx];
-				target[13] = aValues[aIdx += colPitch];
-				target[14] = aValues[aIdx += colPitch];
-				target[15] = aValues[aIdx += colPitch];
-			}
-
-			Array.Clear( alphaErrors, 0, 16 );
-
-			for( int i = 0; i < target.Length; i++ )
-			{
-				var v = target[i];
-				var e = alphaErrors[i];
-
-				float a = (int)(v + e);
-				float b = (int)(a + 0.5F);
-				float d = a - b;
-
-				if( (i & 3) != 3 )
-					alphaErrors[i + 1] += d * (7F / 16F);
-
-				if( i < 12 )
-				{
-					if( (i & 3) != 0 )
-						alphaErrors[i + 3] += d * (3F / 16F);
-
-					alphaErrors[i + 4] += d * (5F / 16F);
-
-					if( (i & 3) != 3 )
-						alphaErrors[i + 5] += d * (1F / 16F);
-				}
-
-				target[i] = b;
-			}
-
-			LoadAlphaMask( target, 0, alphaRef );
 		}
 
 		public BC1Block Encode()
