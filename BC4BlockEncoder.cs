@@ -193,7 +193,7 @@ namespace BCn
 						continue;
 
 					if( v < vMin ) vMin = v;
-					else if( v > vMax ) vMax = v;
+					if( v > vMax ) vMax = v;
 				}
 
 				if( vMin == vMax )
